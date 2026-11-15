@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: hello-deploy
+spec:
+  params:
+    - name: git-url
+      default: https://github.com/halilintar8/hello-cicd.git
+    - name: git-revision
+      default: main
+  workspaces:
+    - name: source
+  tasks:
+    - name: fetch
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: URL
+          value: $(params.git-url)
+        - name: REVISION
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: source
+    - name: deploy
+      runAfter: [fetch]
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: openshift-client
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: SCRIPT
+          value: |
+            oc apply -f k8s/
+            oc start-build hello-app --follow
+            oc rollout status deployment/hello-app --timeout=300s
+      workspaces:
+        - name: manifest_dir
+          workspace: source
+

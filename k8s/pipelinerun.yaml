@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: hello-deploy-
+spec:
+  pipelineRef:
+    name: hello-deploy
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 100Mi
+
