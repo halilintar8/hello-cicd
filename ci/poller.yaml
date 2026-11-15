@@ -48,12 +48,12 @@ spec:
               command: ["/bin/bash", "-c"]
               args:
                 - |
-                  set -e
-                  REPO=https://github.com/halilintar8/hello-cicd.git
-                  NEW=$(git ls-remote "$REPO" refs/heads/main | cut -f1)
+                  set -eu
+                  NEW=$(curl -fsS -H "Accept: application/vnd.github.sha" https://api.github.com/repos/halilintar8/hello-cicd/commits/main)
                   OLD=$(oc get configmap poller-state -o jsonpath='{.data.sha}' 2>/dev/null || true)
                   echo "remote=$NEW last=$OLD"
-                  if [ -n "$NEW" ] && [ "$NEW" != "$OLD" ]; then
+                  if [ -z "$NEW" ]; then echo "empty SHA, giving up"; exit 1; fi
+                  if [ "$NEW" != "$OLD" ]; then
                     oc create -f - <<EOF
                   apiVersion: tekton.dev/v1
                   kind: PipelineRun
