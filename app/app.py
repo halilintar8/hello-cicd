@@ -3,4 +3,5 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    return "Version 2 from Git!"
+    return "hello halilintar8, welcome to OpenShift CI/CD pipeline with Tekton!"
+

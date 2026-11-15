@@ -6,7 +6,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/halilintar8/hello-app.git
+      uri: https://github.com/halilintar8/hello-cicd.git
       ref: main
     contextDir: app
   strategy:
