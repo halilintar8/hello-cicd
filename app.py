@@ -3,4 +3,4 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    return "Hello from my OpenShift CI/CD demo!"
+    return "Version 2 from Git!"
