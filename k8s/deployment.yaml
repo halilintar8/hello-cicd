@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-app
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"hello-app:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"hello-app\")].image"}]'
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-app
+  template:
+    metadata:
+      labels:
+        app: hello-app
+    spec:
+      containers:
+        - name: hello-app
+          image: hello-app:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_MODULE
+              value: app:app
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+

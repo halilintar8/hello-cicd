@@ -1,0 +1,27 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: hello-app
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/halilintar8/hello-app.git
+      ref: main
+    contextDir: app
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: python:3.11-ubi9
+        namespace: openshift
+  output:
+    to:
+      kind: ImageStreamTag
+      name: hello-app:latest
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+
