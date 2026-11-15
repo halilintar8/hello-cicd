@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: poller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: poller
+rules:
+  - apiGroups: ["tekton.dev"]
+    resources: ["pipelineruns"]
+    verbs: ["create", "get", "list"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: poller
+subjects:
+  - kind: ServiceAccount
+    name: poller
+roleRef:
+  kind: Role
+  name: poller
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello-poller
+spec:
+  schedule: "*/3 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: poller
+          restartPolicy: Never
+          containers:
+            - name: poll
+              image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  set -e
+                  REPO=https://github.com/halilintar8/hello-cicd.git
+                  NEW=$(git ls-remote "$REPO" refs/heads/main | cut -f1)
+                  OLD=$(oc get configmap poller-state -o jsonpath='{.data.sha}' 2>/dev/null || true)
+                  echo "remote=$NEW last=$OLD"
+                  if [ -n "$NEW" ] && [ "$NEW" != "$OLD" ]; then
+                    oc create -f - <<EOF
+                  apiVersion: tekton.dev/v1
+                  kind: PipelineRun
+                  metadata:
+                    generateName: hello-deploy-
+                  spec:
+                    pipelineRef:
+                      name: hello-deploy
+                    taskRunTemplate:
+                      serviceAccountName: pipeline
+                    workspaces:
+                      - name: source
+                        volumeClaimTemplate:
+                          spec:
+                            accessModes: [ReadWriteOnce]
+                            resources:
+                              requests:
+                                storage: 100Mi
+                  EOF
+                    oc create configmap poller-state --from-literal=sha="$NEW" --dry-run=client -o yaml | oc apply -f -
+                  fi
+
